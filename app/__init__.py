@@ -59,7 +59,7 @@ def get_s3client():
     return s3
 
 
-#access dynamoDB client
+#access dynamoDB
 def get_dbclient():
     aws_session = boto3.Session(profile_name="ta")
     dynamodb = aws_session.client('dynamodb', region_name='us-east-1', endpoint_url="http://localhost:8000")

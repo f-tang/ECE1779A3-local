@@ -33,12 +33,32 @@ def create_users():
                     'ReadCapacityUnits': 2,
                     'WriteCapacityUnits': 2
                 }
+            },
+            {
+                'IndexName': 'NicknameIndex',
+                'KeySchema': [
+                    {
+                        'AttributeName': 'Nickname',
+                        'KeyType': 'HASH'
+                    }
+                ],
+                'Projection': {
+                    'ProjectionType': 'KEYS_ONLY'
+                },
+                'ProvisionedThroughput': {
+                    'ReadCapacityUnits': 2,
+                    'WriteCapacityUnits': 2
+                }
             }
         ],
 
         AttributeDefinitions=[
             {
                 'AttributeName': 'UserID',
+                'AttributeType': 'S'
+            },
+            {
+                'AttributeName': 'Nickname',
                 'AttributeType': 'S'
             },
         ],
@@ -290,5 +310,5 @@ def delete_table(tableName):
 
 
 if __name__ == '__main__':
-    create_comments()
     # delete_table('users')
+    create_users()

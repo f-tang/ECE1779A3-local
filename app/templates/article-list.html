@@ -27,10 +27,10 @@ padding-top: 56px;
         Click <a href="{{url_for('image_upload')}}">here</a> to upload more images
     </ul>
     <div class="row text-center text-xs-left">
-        {% for image in images %}
-            <div class="col-lg-2 col-md-2 col-sm-3 col-4">
-                <a href="{{url_for('full_image', username=session.username, image=image)}}" class="d-block mb-8 h-5">
-                    <img class="img-fluid img-thumbnail" src="{{ image }}" alt="">
+        {% for article in articles %}
+            <div class="col-lg-3 col-md-4 col-sm-6 col-6">
+                <a href="{{url_for('full_article', article_id=article.id)}}" class="d-block mb-8 h-5">
+                    <img class="img-fluid img-thumbnail" src="{{ article.cover_pic }}" alt="">
                 </a>
             </div>
         {% endfor %}

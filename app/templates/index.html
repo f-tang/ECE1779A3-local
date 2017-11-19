@@ -24,13 +24,20 @@
             {% if not session.logged_in %}
             <h1 class="mt-5">Welcome, visitor</h1>
             <p class="lead">
-                Please <a href="{{url_for('login_form')}}">Login</a> for more content,
+                We have more new <a href="{{url_for('article_list')}}">stories</a> today !
+            </p>
+            <p class="lead">
+                Please <a href="{{url_for('login_form')}}">Login</a> to write a new story
+                or <a href="{{url_for('signup_form')}}">sign up</a> for a new account.
+            </p>
+            <p class="lead">
+                Please <a href="{{url_for('login_form')}}">Login</a> to write a new story
                 or <a href="{{url_for('signup_form')}}">sign up</a> for a new account.
             </p>
             {% else %}
             <h1 class="mt-5">Welcome back, {{session.nickname}}</h1>
             <p class="lead">
-                Have new images to share? Go to your <a href="{{url_for('gallery')}}">gallery</a> !
+                Go to read new <a href="{{url_for('article_list')}}">stories</a> !
             </p>
             {% endif %}
             <ul class="list-unstyled">

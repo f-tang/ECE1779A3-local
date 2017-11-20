@@ -16,23 +16,22 @@ padding-top: 108px;
 
 {% block content %}
 <div class="container">
-    <h1>Upload an image</h1>
+    <h1>New Story</h1>
     <br>
-
-    <form id="image-upload-form" action="{{ url_for('new_article') }}" method="post" enctype="multipart/form-data">
+    {% from "_formhelper.html" import render_field %}
+    <form method="post" action="/new-story">
+        {{ form.csrf_token }}
         <dl>
-            <input type="file" name="file" required accept="image/*" multiple>
-        </dl>
-        <br>
-        <p>
-            <input class="btn btn-primary" type="submit"
-                   value="upload">
-        </p>
+            {{render_field(form.title, size="60")}}
+            {{render_field(form.tag)}}
+            {{render_field(form.content, cols="70", rows="10") }}
 
+        </dl>
+        <p><input class="btn btn-primary" type="submit" value=Submit></p>
     </form>
 
     {% if error %}
-    <p class="error"><strong>Error: </strong>{{error}}</p>
+        <p class="error"><strong>Error: </strong>{{error}}</p>
     {% endif %}
 </div>
 

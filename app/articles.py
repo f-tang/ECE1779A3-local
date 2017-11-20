@@ -38,7 +38,7 @@ def article_list():
             if r['Count'] == 0:
                 raise ValueError('Cannot find the author.')
 
-            starter_name = r['Item']['Nickname']
+            starter_name = r['Items'][0]['Nickname']
 
             article = classes.article(
                 article_id = item['ArticleID'],
@@ -91,7 +91,7 @@ def full_article(article_id):
         if r['Count'] == 0:
             raise ValueError('Cannot find the author.')
 
-        starter_name = r['Item']['Nickname']
+        starter_name = r['Item'][0]['Nickname']
         article = classes.article(
             article_id=item['ArticleID'],
             title=item['Title'],

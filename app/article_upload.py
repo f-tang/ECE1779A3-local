@@ -1,11 +1,14 @@
 from flask import render_template, redirect, url_for, request, g, flash, session
-from app import webapp, login_required, get_db,teardown_db, get_s3bucket, get_dbresource, get_microseconds
+from flask_wtf import FlaskForm
+from wtforms import TextAreaField, StringField, SelectField, validators
+from app import webapp, login_required, get_db, teardown_db, get_s3bucket, get_dbresource, get_microseconds
 from pymysql import escape_string
 from wand.image import Image
 
 import boto3
 from boto3.dynamodb.conditions import Key
 
+import datetime
 import gc
 import os, shutil
 
@@ -14,6 +17,22 @@ APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 
 # path of s3 article folder
 ARTICLES_PATH = "articles/"
+
+
+class ArticleForm(FlaskForm):
+    title = StringField(
+        label='Title',
+        validators=[validators.Length(min=1, max=100, message="Title should be less than 100 characters long")]
+    )
+    content = TextAreaField(
+        label='Content',
+        validators=[validators.data_required(message='Content is empty!')]
+    )
+    tag = SelectField(
+        label='Tag',
+        choices=[('fiction', 'Fiction'), ('marvel', 'Marvel'), ('fairytale', 'Fairytale')]
+    )
+
 
 # page for new article
 @webapp.route('/new-story', methods=['GET', 'POST'])
@@ -24,7 +43,13 @@ def new_article():
     tmp_target = os.path.join(APP_ROOT, APP_RELATED)
 
     try:
+        form = ArticleForm(request.form)
         if request.method == "POST":
+            # check if form is validated
+            if not form.validate_on_submit():
+                error = "request is invalidated"
+                return render_template("article-upload.html", title='new story', form=form, error=error)
+
             # access to database
             dynamodb = get_dbresource()
             article_table = dynamodb.Table('articles')
@@ -43,74 +68,65 @@ def new_article():
             # check if file exists in the request
             if 'file' not in request.files:
                 error = "file does not exist"
-                return render_template("article-upload.html", title="new story", error=error)
+                return render_template("article-upload.html", title="new story", form=form, error=error)
 
-            # get the list for uploaded files
-            for file in request.files.getlist("file"):
-                # double check if the file exists
-                if file == None or file.filename == '':
-                    error = "file does not exist"
-                    return render_template("article-upload.html", title="new story", error=error)
+            # insert the article info into the database
+            article_id = str(get_microseconds())
+            starter_id = session['username']
+            starter_name = session['nickname']
+            chapter_id = article_id + '_' + str(get_microseconds())
+            author_id = session['username']
+            author_name = session['nickname']
+            thumb_num = 0
+            content = ARTICLES_PATH + article_id + '/' + chapter_id + '.md'
 
-                # insert the article info into the database
-                article_id = str(get_microseconds())
-                starter_id = session['username']
-                starter_name = session['nickname']
-                chapter_id = article_id + '_' + str(get_microseconds())
-                author_id = session['username']
-                author_name = session['nickname']
-                thumb_num = 0
-                content = ARTICLES_PATH + article_id + '/' + chapter_id + '.md'
+            # TODO: get article title, tag and chapter title
+            article_title = ''
+            chapter_title = ''
+            create_time = str(datetime.datetime.now())[:16]
+            modify_time = create_time
+            tag = ''
 
-                # TODO:
-                article_title = ''
-                chapter_title = ''
-                create_time = 0
-                modify_time = 0
-                tag = ''
+            response1 = article_table.query(
+                KeyConditionExpression=Key('ArticleID').eq(escape_string(article_id))
+            )
+            response2 = chapter_table.query(
+                KeyConditionExpression=Key('ChapterID').eq(escape_string(chapter_id))
+            )
 
-                response1 = article_table.query(
-                    KeyConditionExpression=Key('ArticleID').eq(escape_string(article_id))
-                )
-                response2 = chapter_table.query(
-                    KeyConditionExpression=Key('ChapterID').eq(escape_string(chapter_id))
-                )
+            if response1['Count'] > 0 or response2['Count'] > 0:
+                flash("Server is busy, please try again.")
+                return render_template("article-upload.html", title="new article", error=error)
 
-                if response1['Count'] > 0 or response2['Count'] > 0:
-                    flash("Server is busy, please try again.")
-                    return render_template("article-upload.html", title="new article", error=error)
+            article_table.put_item(
+                Item={
+                    'ArticleID': escape_string(article_id),
+                    'Title': escape_string(article_title),
+                    'Tag': escape_string(tag),
+                    'StarterID': escape_string(starter_id),
+                    'CreateTime': escape_string(create_time),
+                    'ModifyTime': escape_string(modify_time),
+                    'ThumbNum': escape_string(thumb_num)
+                }
+            )
 
-                article_table.put_item(
-                    Item={
-                        'ArticleID': escape_string(article_id),
-                        'Title': escape_string(article_title),
-                        'Tag': escape_string(tag),
-                        'StarterID': escape_string(starter_id),
-                        'CreateTime': escape_string(create_time),
-                        'ModifyTime': escape_string(modify_time),
-                        'ThumbNum': escape_string(thumb_num)
-                    }
-                )
+            chapter_table.put_item(
+                Item={
+                    'ChapterID': escape_string(chapter_id),
+                    'Title': escape_string(chapter_title),
+                    'Content': escape_string(content),
+                    'AuthorID': escape_string(author_id),
+                    'ArticleID': escape_string(article_id),
+                    'CreateTime': escape_string(create_time),
+                    'ThumbNum': escape_string(thumb_num)
+                }
+            )
 
-                chapter_table.put_item(
-                    Item={
-                        'ChapterID': escape_string(chapter_id),
-                        'Title': escape_string(chapter_title),
-                        'Content': escape_string(content),
-                        'AuthorID': escape_string(author_id),
-                        'ArticleID': escape_string(article_id),
-                        'CreateTime': escape_string(create_time),
-                        'ThumbNum': escape_string(thumb_num)
-                    }
-                )
+            # save the chapter file
+            target = ARTICLES_PATH + article_id + '/' + chapter_id + '.md'
+            tmp_dest = "/".join([tmp_target, chapter_id])
 
-                # save the chapter file
-                target = ARTICLES_PATH + article_id + '/' + chapter_id + '.md'
-                tmp_dest = "/".join([tmp_target, chapter_id])
-
-                file.save(tmp_dest)
-                file.seek(0)
-                s3.put_object(Key=content, Body=file, ACL='public-read')
+            # s3.put_object(Key=content, Body=file, ACL='public-read')
 
             # database commit, cleanup and garbage collect
             shutil.rmtree(tmp_target)
@@ -119,7 +135,7 @@ def new_article():
             flash("new story is created successfully")
             return redirect(url_for("full_article", article_id=article_id))
 
-        return render_template("article-upload.html", title="new story")
+        return render_template("article-upload.html", title="new story", form=form)
 
     except Exception as e:
         if os.path.isdir(tmp_target):
@@ -143,6 +159,8 @@ def new_chapter(article_id):
 
         s3 = get_s3bucket()
 
+        # TODO: check if the article id exists
+
         # check if file exists in the request
         if 'file' not in request.files:
             error = "file does not exist"
@@ -157,9 +175,10 @@ def new_chapter(article_id):
         thumb_num = 0
         content = ARTICLES_PATH + article_id + '/' + chapter_id + '.md'
 
-        # TODO:
+        # TODO: get chapter title, tag
         chapter_title = ''
-        create_time = 0
+        create_time = str(datetime.datetime.now())[:16]
+        modify_time = create_time
         tag = ''
 
         response = chapter_table.query(
@@ -188,6 +207,8 @@ def new_chapter(article_id):
 
         s3.put_object(Key=content, Body=file, ACL='public-read')
 
+        # TODO: update article's modify time
+
         # database commit, cleanup and garbage collect
         shutil.rmtree(tmp_target)
         gc.collect()
@@ -205,7 +226,6 @@ def new_chapter(article_id):
 @webapp.route('/thumbup/<article_id>', methods=['POST'])
 @login_required
 def thumbup_article(article_id):
-
     return redirect(url_for("full_article"))
 
 
@@ -213,6 +233,4 @@ def thumbup_article(article_id):
 @webapp.route('/thumbup/<chapter_id>', methods=['POST'])
 @login_required
 def thumbup_chapter(chapter_id):
-
     return redirect(url_for("full_article"))
-

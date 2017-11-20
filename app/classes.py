@@ -1,10 +1,9 @@
 
 
 class article:
-    def __init__(self, article_id, title, content, cover_pic, tag, starter_id, starter_name, create_time, modify_time, thumb_num):
+    def __init__(self, article_id, title, cover_pic, tag, starter_id, starter_name, create_time, modify_time, thumb_num):
         self.article_id = article_id
         self.title = title
-        self.content = content
         self.cover_pic = cover_pic
         self.tag = tag
         self.starter_id = starter_id

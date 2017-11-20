@@ -84,4 +84,4 @@ def get_microseconds():
 from app import main
 from app import articles
 from app import login_signup
-from app import image_upload
+from app import article_upload

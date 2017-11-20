@@ -43,7 +43,6 @@ def article_list():
             article = classes.article(
                 article_id = item['ArticleID'],
                 title = item['Title'],
-                content = item['Content'],
                 cover_pic= escape_string(cover_url + item['Tag']),
                 tag = item['Tag'],
                 starter_id = item['StarterID'],
@@ -96,7 +95,6 @@ def full_article(article_id):
         article = classes.article(
             article_id=item['ArticleID'],
             title=item['Title'],
-            content=item['Content'],
             cover_pic=escape_string(cover_url + item['Tag']),
             tag=item['Tag'],
             starter_id=item['StarterID'],

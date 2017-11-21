@@ -18,7 +18,6 @@ APP_ROOT = os.path.dirname(os.path.abspath(__file__))
 # path of s3 article folder
 ARTICLES_PATH = "articles/"
 
-
 class ArticleForm(FlaskForm):
     title = StringField(
         label='Title',

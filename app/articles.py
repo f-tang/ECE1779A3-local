@@ -74,7 +74,9 @@ class ChapterForm(FlaskForm):
 def full_article(article_id):
     try:
         cover_url = "https://s3.amazonaws.com/ece1779-ft/cover_pics/"
+        article_url = "https://s3.amazonaws.com/ece1779-ft/"
         form = ChapterForm(request.form)
+
         # access database
         dynamodb = get_dbresource()
         chaptertable = dynamodb.Table('chapters')
@@ -130,7 +132,7 @@ def full_article(article_id):
 
             chapter = classes.chapter(
                 chapter_id = item['ChapterID'],
-                content = item['Content'],
+                content = article_url + item['Content'],
                 article_id = item['ArticleID'],
                 author_id = item['AuthorID'],
                 author_name= author_name,

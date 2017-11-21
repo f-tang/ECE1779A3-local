@@ -22,29 +22,87 @@
     <h1>{{ article.title }}</h1>
     <div class="row">
         {% for chapter in chapters %}
-            <div class="col-lg-12 text-center">
-                {{ chapter.content }}
+        <div class="col-lg-12 text-center">
+            {{ chapter.content }}
+        </div>
+
+        <div class="container">
+            <div class="row">
+                <div class="col">
+                    <a href="#CommentList{{chapter.chapter_id}}" data-toggle="collapse" aria-expanded="true" aria-controls="CommentList{{chapter.chapter_id}}">
+                        comment
+                    </a>
+                </div>
+                <div class="col">
+                    <form inline method="post" action="{{ url_for('thumbup_chapter', article_id = article.article_id, chapter_id = chapter.chapter_id) }}">
+                        <input class="btn btn-primary" type="submit" value="thumbup">
+                    </form>
+                </div>
             </div>
-            <br>
+            <div class="collapse show" id="CommentList{{chapter.chapter_id}}">
+                <div class="container">
+                    <div class="row">
+                        {% if session.logged_in %}
+                        <a href="#CommentForm{{chapter.chapter_id}}" data-toggle="collapse" aria-expanded="false" aria-controls="CommentForm{{chapter.chapter_id}}">
+                            add comment
+                        </a>
+                        {% from "_formhelper.html" import render_field %}
+                        <div class="collapse" id="CommentForm{{chapter.chapter_id}}">
+                            <div class="container">
+                                <form method="post" action="{{ url_for('new_comment', article_id = article.article_id, chapter_id = chapter.chapter_id) }}">
+                                    {{ commentform.csrf_token }}
+                                    <dl>
+                                        {{render_field(commentform.content, cols="35", rows="5") }}
+                                    </dl>
+                                    <p><input class="btn btn-primary" type="submit" value=Submit></p>
+                                </form>
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="font-italic">Please <a href="{{url_for('login_form')}}">login</a> to comment.</p>
+                        {% endif %}
+                    </div>
+                    {% if chapter.comment %}
+                    {% for comment in chapter.comment %}
+                    <div class="row">
+                        {{ comment.content }}
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p class="font-italic">No comment for this chapter.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <br>
         {% endfor %}
     </div>
 </div>
-
+<br>
 <div class="container">
+    {% if session.logged_in %}
     <h5>New Chapter</h5>
     {% from "_formhelper.html" import render_field %}
-    <form method="post" action={{ url_for("new_chapter", article_id = article.article_id) }}>
-        {{ form.csrf_token }}
+    <form method="post" action="{{ url_for('new_chapter', article_id = article.article_id) }}">
+        {{ chapterform.csrf_token }}
         <dl>
-            {{render_field(form.content, cols="70", rows="10") }}
+            {{render_field(chapterform.content, cols="70", rows="10") }}
         </dl>
         <p><input class="btn btn-primary" type="submit" value=Submit></p>
     </form>
 
     {% if error %}
-        <p class="error"><strong>Error: </strong>{{error}}</p>
+    <p class="error"><strong>Error: </strong>{{error}}</p>
+    {% endif %}
+
+    {% else %}
+    <p class="lead">
+        Please <a href="{{url_for('login_form')}}">Login</a> to write a new chapter
+    </p>
     {% endif %}
 </div>
+
+
 {% endblock %}
 
 

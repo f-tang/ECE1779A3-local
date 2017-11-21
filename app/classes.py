@@ -1,4 +1,5 @@
-
+from flask_wtf import FlaskForm
+from wtforms import TextAreaField, StringField, SelectField, validators
 
 class article:
     def __init__(self, article_id, title, cover_pic, tag, starter_id, starter_name, create_time, modify_time, thumb_num):
@@ -21,6 +22,7 @@ class chapter:
         self.author_name = author_name
         self.create_time = create_time
         self.thumb_num = thumb_num
+        self.comment = None
 
 class comment:
     def __init__(self, comment_id, chapter_id, content, commenter_id, commenter_name, create_time):
@@ -30,3 +32,30 @@ class comment:
         self.commenter_id = commenter_id
         self.commenter_name = commenter_name
         self.create_time = create_time
+
+class ArticleForm(FlaskForm):
+    title = StringField(
+        label='Title',
+        validators=[validators.data_required(message='Title is empty!'),
+                    validators.Length(min=1, max=100, message="Title should be less than 100 characters long")]
+    )
+    content = TextAreaField(
+        label='Content',
+        validators=[validators.data_required(message='Content is empty!')]
+    )
+    tag = SelectField(
+        label='Tag',
+        choices=[('fiction', 'Fiction'), ('marvel', 'Marvel'), ('fairytale', 'Fairytale')]
+    )
+
+class ChapterForm(FlaskForm):
+    content = TextAreaField(
+        label='',
+        validators=[validators.data_required(message='Content is empty!')]
+    )
+
+class CommentForm(FlaskForm):
+    content = TextAreaField(
+        label='',
+        validators=[validators.data_required(message='Content is empty!')]
+    )

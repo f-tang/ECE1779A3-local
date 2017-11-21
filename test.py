@@ -9,6 +9,7 @@ if __name__ == '__main__':
     usertable = dynamodb.Table('users')
     article_table = dynamodb.Table('articles')
     chapter_table = dynamodb.Table('chapters')
+    comment_table = dynamodb.Table('comments')
 
     response = usertable.query(
         IndexName='UIDIndex',
@@ -38,7 +39,5 @@ if __name__ == '__main__':
 
     response = chapter_table.scan()
     print(response)
-
-
 
     print(str(datetime.datetime.now())[:16])

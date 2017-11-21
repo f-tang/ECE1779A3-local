@@ -63,25 +63,22 @@ def article_list():
     except Exception as e:
         return str(e)
 
-class ChapterForm(FlaskForm):
-    content = TextAreaField(
-        label='Content',
-        validators=[validators.data_required(message='Content is empty!')]
-    )
 
 # page for showing full articles
 @webapp.route("/article/<article_id>")
 def full_article(article_id):
     try:
         cover_url = "https://s3.amazonaws.com/ece1779-ft/cover_pics/"
-        article_url = "https://s3.amazonaws.com/ece1779-ft/"
-        form = ChapterForm(request.form)
+        s3_url = "https://s3.amazonaws.com/ece1779-ft/"
+        chapter_form = classes.ChapterForm(request.form)
+        comment_form = classes.CommentForm(request.form)
 
         # access database
         dynamodb = get_dbresource()
         chaptertable = dynamodb.Table('chapters')
         usertable = dynamodb.Table('users')
         articletable = dynamodb.Table('articles')
+        comment_table = dynamodb.Table('comments')
 
         # query for article information
         response = articletable.query(
@@ -132,16 +129,47 @@ def full_article(article_id):
 
             chapter = classes.chapter(
                 chapter_id = item['ChapterID'],
-                content = article_url + item['Content'],
+                content = s3_url + item['Content'],
                 article_id = item['ArticleID'],
                 author_id = item['AuthorID'],
                 author_name= author_name,
                 create_time = item['CreateTime'],
                 thumb_num = item['ThumbNum']
             )
+
+            r_comment = comment_table.query(
+                IndexName='ChapterIndex',
+                KeyConditionExpression=Key('ChapterID').eq(chapter.chapter_id)
+            )
+            if r_comment['Count'] > 0:
+                chapter.comment = []
+                i_comments = r_comment['Items']
+                for i in i_comments:
+                    r_user = usertable.query(
+                        IndexName='UIDIndex',
+                        KeyConditionExpression=Key('UserID').eq(i['CommenterID'])
+                    )
+                    if r_user['Count'] > 0:
+                        commenter_name = r_user['Items'][0]['Nickname']
+                    else:
+                        commenter_name = 'Anonymous'
+
+                    comment = classes.comment(
+                        comment_id = i['CommentID'],
+                        chapter_id = i['ChapterID'],
+                        content = s3_url + i['Content'],
+                        commenter_id = i['CommenterID'],
+                        commenter_name = commenter_name,
+                        create_time = i['CreateTime'],
+                    )
+                    chapter.comment.append(comment)
+
             chapters.append(chapter)
 
-        return render_template("full-article.html", article=article, chapters=chapters, form=form)
+        return render_template(
+            "full-article.html",
+            article=article, chapters=chapters,
+            chapterform=chapter_form, commentform=comment_form)
 
     except Exception as e:
         return str(e)

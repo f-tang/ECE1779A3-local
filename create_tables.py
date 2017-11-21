@@ -78,10 +78,6 @@ def create_articles():
                 'AttributeName': 'ArticleID',
                 'KeyType': 'HASH'
             },
-            {
-                'AttributeName': 'Title',
-                'KeyType': 'RANGE'
-            }
         ],
 
         GlobalSecondaryIndexes=[
@@ -92,10 +88,6 @@ def create_articles():
                         'AttributeName': 'Tag',
                         'KeyType': 'HASH'
                     },
-                    {
-                        'AttributeName': 'Title',
-                        'KeyType': 'RANGE'
-                    }
                 ],
                 'Projection': {
                     'ProjectionType': 'ALL'
@@ -113,10 +105,6 @@ def create_articles():
                         'AttributeName': 'StarterID',
                         'KeyType': 'HASH'
                     },
-                    {
-                        'AttributeName': 'Title',
-                        'KeyType': 'RANGE'
-                    }
                 ],
                 'Projection': {
                     'ProjectionType': 'ALL'
@@ -131,10 +119,6 @@ def create_articles():
         AttributeDefinitions=[
             {
                 'AttributeName': 'ArticleID',
-                'AttributeType': 'S'
-            },
-            {
-                'AttributeName': 'Title',
                 'AttributeType': 'S'
             },
             {
@@ -163,10 +147,6 @@ def create_chapters():
                 'AttributeName': 'ChapterID',
                 'KeyType': 'HASH'
             },
-            {
-                'AttributeName': 'ArticleID',
-                'KeyType': 'RANGE'
-            }
         ],
 
         GlobalSecondaryIndexes=[
@@ -311,4 +291,8 @@ def delete_table(tableName):
 
 if __name__ == '__main__':
     # delete_table('users')
-    create_users()
+    # create_users()
+    # delete_table('articles')
+    # create_articles()
+    # delete_table('chapters')
+    create_chapters()

@@ -13,9 +13,8 @@ class article:
         self.thumb_num = thumb_num
 
 class chapter:
-    def __init__(self, chapter_id, title, content, article_id, author_id, author_name, create_time, thumb_num):
+    def __init__(self, chapter_id, content, article_id, author_id, author_name, create_time, thumb_num):
         self.chapter_id = chapter_id
-        self.title = title
         self.content = content
         self.article_id = article_id
         self.author_id = author_id

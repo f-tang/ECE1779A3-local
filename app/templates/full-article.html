@@ -19,14 +19,31 @@
 <!-- Page Content -->
 <br>
 <div class="container">
+    <h1>{{ article.title }}</h1>
     <div class="row">
         {% for chapter in chapters %}
             <div class="col-lg-12 text-center">
-                <img class="img-fluid img-thumbnail" src="{{ chapter }}" alt="">
+                {{ chapter.content }}
             </div>
             <br>
         {% endfor %}
     </div>
+</div>
+
+<div class="container">
+    <h5>New Chapter</h5>
+    {% from "_formhelper.html" import render_field %}
+    <form method="post" action={{ url_for("new_chapter", article_id = article.article_id) }}>
+        {{ form.csrf_token }}
+        <dl>
+            {{render_field(form.content, cols="70", rows="10") }}
+        </dl>
+        <p><input class="btn btn-primary" type="submit" value=Submit></p>
+    </form>
+
+    {% if error %}
+        <p class="error"><strong>Error: </strong>{{error}}</p>
+    {% endif %}
 </div>
 {% endblock %}
 

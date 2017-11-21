@@ -1,4 +1,6 @@
 from flask import render_template, redirect, url_for, request, g, session, flash
+from flask_wtf import FlaskForm
+from wtforms import TextAreaField, StringField, SelectField, validators
 from app import webapp, login_required, get_db, teardown_db, get_s3client, get_dbresource, classes
 from pymysql import escape_string
 
@@ -61,13 +63,18 @@ def article_list():
     except Exception as e:
         return str(e)
 
+class ChapterForm(FlaskForm):
+    content = TextAreaField(
+        label='Content',
+        validators=[validators.data_required(message='Content is empty!')]
+    )
 
-# page for showing full images
+# page for showing full articles
 @webapp.route("/article/<article_id>")
 def full_article(article_id):
     try:
         cover_url = "https://s3.amazonaws.com/ece1779-ft/cover_pics/"
-
+        form = ChapterForm(request.form)
         # access database
         dynamodb = get_dbresource()
         chaptertable = dynamodb.Table('chapters')
@@ -81,7 +88,7 @@ def full_article(article_id):
         if response['Count'] == 0:
             raise ValueError('This page does not exist.')
 
-        item = response['Item']
+        item = response['Items'][0]
 
         # query for starter information
         r = usertable.query(
@@ -91,7 +98,7 @@ def full_article(article_id):
         if r['Count'] == 0:
             raise ValueError('Cannot find the author.')
 
-        starter_name = r['Item'][0]['Nickname']
+        starter_name = r['Items'][0]['Nickname']
         article = classes.article(
             article_id=item['ArticleID'],
             title=item['Title'],
@@ -119,11 +126,10 @@ def full_article(article_id):
             if r['Count'] == 0:
                 raise ValueError('Cannot find the author.')
 
-            author_name = r['Item']['Nickname']
+            author_name = r['Items'][0]['Nickname']
 
             chapter = classes.chapter(
-                chapter_id = item['Chapter'],
-                title = item['Title'],
+                chapter_id = item['ChapterID'],
                 content = item['Content'],
                 article_id = item['ArticleID'],
                 author_id = item['AuthorID'],
@@ -133,7 +139,7 @@ def full_article(article_id):
             )
             chapters.append(chapter)
 
-        return render_template("full-article.html", article=article, chapters=chapters)
+        return render_template("full-article.html", article=article, chapters=chapters, form=form)
 
     except Exception as e:
         return str(e)

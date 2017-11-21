@@ -10,7 +10,7 @@ from boto3.dynamodb.conditions import Key
 
 import datetime
 import gc
-import os, shutil
+import os, decimal
 
 # get the absolute path of the file
 APP_ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -22,7 +22,8 @@ ARTICLES_PATH = "articles/"
 class ArticleForm(FlaskForm):
     title = StringField(
         label='Title',
-        validators=[validators.Length(min=1, max=100, message="Title should be less than 100 characters long")]
+        validators=[validators.data_required(message='Title is empty!'),
+                    validators.Length(min=1, max=100, message="Title should be less than 100 characters long")]
     )
     content = TextAreaField(
         label='Content',
@@ -39,9 +40,6 @@ class ArticleForm(FlaskForm):
 @login_required
 def new_article():
     error = ''
-    APP_RELATED = 'static/tmp/' + session['username'] + str(get_microseconds())
-    tmp_target = os.path.join(APP_ROOT, APP_RELATED)
-
     try:
         form = ArticleForm(request.form)
         if request.method == "POST":
@@ -50,43 +48,25 @@ def new_article():
                 error = "request is invalidated"
                 return render_template("article-upload.html", title='new story', form=form, error=error)
 
+            user_id = session['username']
+            user_nickname = session['nickname']
+            title = escape_string(form.title.data)
+            content_body = form.content.data
+            tag = form.tag.data
+
             # access to database
             dynamodb = get_dbresource()
             article_table = dynamodb.Table('articles')
             chapter_table = dynamodb.Table('chapters')
 
-            s3 = get_s3bucket()
-
-            # file path of articles
-            if not os.path.isdir(os.path.join(APP_ROOT, 'static/tmp/')):
-                os.mkdir(os.path.join(APP_ROOT, 'static/tmp/'))
-
-            # create a tmp folder for the user if it does not exist
-            if not os.path.isdir(tmp_target):
-                os.mkdir(tmp_target)
-
-            # check if file exists in the request
-            if 'file' not in request.files:
-                error = "file does not exist"
-                return render_template("article-upload.html", title="new story", form=form, error=error)
-
-            # insert the article info into the database
             article_id = str(get_microseconds())
-            starter_id = session['username']
-            starter_name = session['nickname']
+            starter_id = user_id
             chapter_id = article_id + '_' + str(get_microseconds())
-            author_id = session['username']
-            author_name = session['nickname']
-            thumb_num = 0
-            content = ARTICLES_PATH + article_id + '/' + chapter_id + '.md'
-
-            # TODO: get article title, tag and chapter title
-            article_title = ''
-            chapter_title = ''
+            author_id = user_id
             create_time = str(datetime.datetime.now())[:16]
             modify_time = create_time
-            tag = ''
 
+            # insert the article info into the database
             response1 = article_table.query(
                 KeyConditionExpression=Key('ArticleID').eq(escape_string(article_id))
             )
@@ -98,38 +78,33 @@ def new_article():
                 flash("Server is busy, please try again.")
                 return render_template("article-upload.html", title="new article", error=error)
 
+            # upload article body to s3
+            s3 = get_s3bucket()
+            content = ARTICLES_PATH + article_id + '/' + chapter_id + '.md'
+            s3.put_object(Key=content, Body=content_body, ACL='public-read')
+
             article_table.put_item(
                 Item={
                     'ArticleID': escape_string(article_id),
-                    'Title': escape_string(article_title),
+                    'Title': escape_string(title),
                     'Tag': escape_string(tag),
                     'StarterID': escape_string(starter_id),
                     'CreateTime': escape_string(create_time),
                     'ModifyTime': escape_string(modify_time),
-                    'ThumbNum': escape_string(thumb_num)
+                    'ThumbNum': decimal.Decimal(0)
                 }
             )
 
             chapter_table.put_item(
                 Item={
                     'ChapterID': escape_string(chapter_id),
-                    'Title': escape_string(chapter_title),
                     'Content': escape_string(content),
                     'AuthorID': escape_string(author_id),
                     'ArticleID': escape_string(article_id),
                     'CreateTime': escape_string(create_time),
-                    'ThumbNum': escape_string(thumb_num)
+                    'ThumbNum': decimal.Decimal(0)
                 }
             )
-
-            # save the chapter file
-            target = ARTICLES_PATH + article_id + '/' + chapter_id + '.md'
-            tmp_dest = "/".join([tmp_target, chapter_id])
-
-            # s3.put_object(Key=content, Body=file, ACL='public-read')
-
-            # database commit, cleanup and garbage collect
-            shutil.rmtree(tmp_target)
             gc.collect()
 
             flash("new story is created successfully")
@@ -138,9 +113,13 @@ def new_article():
         return render_template("article-upload.html", title="new story", form=form)
 
     except Exception as e:
-        if os.path.isdir(tmp_target):
-            shutil.rmtree(tmp_target)
         return str(e)
+
+class ChapterForm(FlaskForm):
+    content = TextAreaField(
+        label='Content',
+        validators=[validators.data_required(message='Content is empty!')]
+    )
 
 
 # page for new article
@@ -148,38 +127,28 @@ def new_article():
 @login_required
 def new_chapter(article_id):
     error = ''
-    APP_RELATED = 'static/tmp/' + session['username'] + str(get_microseconds())
-    tmp_target = os.path.join(APP_ROOT, APP_RELATED)
-
     try:
+        form = ChapterForm(request.form)
+        if not form.validate_on_submit():
+            error = "request is invalidated"
+            return redirect(url_for("full_article", article_id=article_id, error=error))
+
         # access to database
         dynamodb = get_dbresource()
         article_table = dynamodb.Table('articles')
         chapter_table = dynamodb.Table('chapters')
 
-        s3 = get_s3bucket()
+        response = article_table.query(
+            KeyConditionExpression=Key('ArticleID').eq(escape_string(article_id))
+        )
+        if response['Count'] == 0:
+            raise ValueError('This page does not exist.')
 
-        # TODO: check if the article id exists
-
-        # check if file exists in the request
-        if 'file' not in request.files:
-            error = "file does not exist"
-            return redirect(url_for("full_article", article_id=article_id, error=error))
-
-        file = request.files['file']
-
-        # insert the article info into the database
+        content_body = form.content.data
         chapter_id = article_id + '_' + str(get_microseconds())
         author_id = session['username']
-        author_name = session['nickname']
-        thumb_num = 0
-        content = ARTICLES_PATH + article_id + '/' + chapter_id + '.md'
-
-        # TODO: get chapter title, tag
-        chapter_title = ''
         create_time = str(datetime.datetime.now())[:16]
         modify_time = create_time
-        tag = ''
 
         response = chapter_table.query(
             KeyConditionExpression=Key('ChapterID').eq(escape_string(chapter_id))
@@ -189,36 +158,41 @@ def new_chapter(article_id):
             flash("Server is busy, please try again.")
             return render_template("article-upload.html", title="new article", error=error)
 
+        # upload article body to s3
+        s3 = get_s3bucket()
+        content = ARTICLES_PATH + article_id + '/' + chapter_id + '.md'
+        s3.put_object(Key=content, Body=content_body, ACL='public-read')
+
+        # insert the article info into the database
         chapter_table.put_item(
             Item={
                 'ChapterID': escape_string(chapter_id),
-                'Title': escape_string(chapter_title),
                 'Content': escape_string(content),
                 'AuthorID': escape_string(author_id),
                 'ArticleID': escape_string(article_id),
                 'CreateTime': escape_string(create_time),
-                'ThumbNum': escape_string(thumb_num)
+                'ThumbNum': decimal.Decimal(0)
             }
         )
 
-        # save the chapter file
-        target = ARTICLES_PATH + article_id + '/' + chapter_id + '.md'
-        tmp_dest = "/".join([tmp_target, chapter_id])
-
-        s3.put_object(Key=content, Body=file, ACL='public-read')
-
         # TODO: update article's modify time
+        article_table.update_item(
+            Key={
+                'ArticleID': article_id
+            },
+            UpdateExpression="set ModifyTime = :m",
+            ExpressionAttributeValues={
+                ':m': modify_time
+            },
+            ReturnValues="UPDATED_NEW"
+        )
 
-        # database commit, cleanup and garbage collect
-        shutil.rmtree(tmp_target)
         gc.collect()
 
-        flash("new story is created successfully")
+        flash("new chapter is created successfully")
         return redirect(url_for("full_article", article_id=article_id))
 
     except Exception as e:
-        if os.path.isdir(tmp_target):
-            shutil.rmtree(tmp_target)
         return str(e)
 
 

@@ -17,22 +17,6 @@ padding-top: 56px;
 
 {% block nav_home %}nav-link{% endblock %}
 
-{% block tag_all %}
-{% if not tag or not tag == 'all'%}
-nav-link
-{% else %}
-nav-link active
-{% endif %}
-{% endblock %}
-
-{% block tag_fiction %}
-{% if not tag or not tag == 'fiction' %}
-nav-link
-{% else %}
-nav-link active
-{% endif %}
-{% endblock %}
-
 {% block content %}
 <!-- Page Content -->
 <br>

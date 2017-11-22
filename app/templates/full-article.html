@@ -68,7 +68,7 @@
                     {% if chapter.comment %}
                     {% for comment in chapter.comment %}
                     <div class="row">
-                        {{ comment.content }}
+                        <textarea class="form-control" readonly>{{ comment.content }}</textarea>
                     </div>
                     {% endfor %}
                     {% else %}

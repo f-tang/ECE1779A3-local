@@ -206,10 +206,11 @@ def full_article(article_id):
                     else:
                         commenter_name = 'Anonymous'
 
+                    txt = urllib.request.urlopen(s3_url + i['Content']).read().decode('utf-8').rstrip()
                     comment = classes.comment(
                         comment_id=i['CommentID'],
                         chapter_id=i['ChapterID'],
-                        content=s3_url + i['Content'],
+                        content=txt,
                         commenter_id=i['CommenterID'],
                         commenter_name=commenter_name,
                         create_time=i['CreateTime'],

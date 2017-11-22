@@ -291,10 +291,10 @@ def delete_table(tableName):
 
 if __name__ == '__main__':
     # delete_table('users')
-    # create_users()
     delete_table('articles')
-    create_articles()
     delete_table('chapters')
-    create_chapters()
     delete_table('comments')
+    # create_users()
+    create_articles()
+    create_chapters()
     create_comments()

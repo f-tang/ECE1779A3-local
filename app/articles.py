@@ -9,6 +9,7 @@ from boto3.dynamodb.conditions import Key
 
 import gc
 import os, shutil
+import operator
 
 
 # get the absolute path of the file
@@ -55,6 +56,7 @@ def article_list():
             )
             articles.append(article)
 
+        articles.sort(key=operator.attrgetter('modify_time'), reverse=True)
         #cleanup
         gc.collect()
 
@@ -163,8 +165,10 @@ def full_article(article_id):
                         create_time = i['CreateTime'],
                     )
                     chapter.comment.append(comment)
+                chapter.comment.sort(key=operator.attrgetter('create_time'), reverse=False)
 
             chapters.append(chapter)
+        chapters.sort(key=operator.attrgetter('create_time'), reverse=False)
 
         return render_template(
             "full-article.html",

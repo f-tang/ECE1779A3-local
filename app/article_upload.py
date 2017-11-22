@@ -46,7 +46,7 @@ def new_article():
             starter_id = user_id
             chapter_id = article_id + '_' + str(get_microseconds())
             author_id = user_id
-            create_time = str(datetime.datetime.now())[:16]
+            create_time = str(datetime.datetime.now())[:19]
             modify_time = create_time
 
             # insert the article info into the database
@@ -124,7 +124,7 @@ def new_chapter(article_id):
         content_body = form.content.data
         chapter_id = article_id + '_' + str(get_microseconds())
         author_id = session['username']
-        create_time = str(datetime.datetime.now())[:16]
+        create_time = str(datetime.datetime.now())[:19]
         modify_time = create_time
 
         response = chapter_table.query(
@@ -200,7 +200,7 @@ def new_comment(chapter_id, article_id):
         content_body = form.content.data
         comment_id = chapter_id + '_' + str(get_microseconds())
         commenter_id = session['username']
-        create_time = str(datetime.datetime.now())[:16]
+        create_time = str(datetime.datetime.now())[:19]
 
         response = comment_table.query(
             KeyConditionExpression=Key('CommentID').eq(escape_string(comment_id))

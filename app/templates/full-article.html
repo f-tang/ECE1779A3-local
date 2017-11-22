@@ -10,6 +10,10 @@
             padding-top: 56px;
         }
     }
+
+    textarea {
+       resize: none;
+    }
 {% endblock %}
 
 {% block nav_home %}nav-link{% endblock %}
@@ -21,8 +25,8 @@
     <h1>{{ article.title }}</h1>
     <div class="row">
         {% for chapter in chapters %}
-        <div class="col-lg-12 text-center">
-            {{ chapter.content }}
+        <div class="col-lg-12">
+            <textarea class="form-control" readonly>{{ chapter.content }}</textarea>
         </div>
 
         <div class="container">
@@ -101,7 +105,9 @@
     {% endif %}
 </div>
 
-
+<script>
+    $("textarea").height( $("textarea")[0].scrollHeight + 10 );
+</script>
 {% endblock %}
 
 

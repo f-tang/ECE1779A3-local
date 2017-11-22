@@ -63,7 +63,7 @@ def new_article():
 
             # upload article body to s3
             s3 = get_s3bucket()
-            content = ARTICLES_PATH + article_id + '/' + chapter_id + '.txt'
+            content = ARTICLES_PATH + article_id + '/' + chapter_id + '.md'
             s3.put_object(Key=content, Body=content_body, ACL='public-read')
 
             article_table.put_item(
@@ -137,7 +137,7 @@ def new_chapter(article_id):
 
         # upload chapter body to s3
         s3 = get_s3bucket()
-        content = ARTICLES_PATH + article_id + '/' + chapter_id + '.txt'
+        content = ARTICLES_PATH + article_id + '/' + chapter_id + '.md'
         s3.put_object(Key=content, Body=content_body, ACL='public-read')
 
         # insert the article info into the database
@@ -212,7 +212,7 @@ def new_comment(chapter_id, article_id):
 
         # upload chapter body to s3
         s3 = get_s3bucket()
-        content = COMMENTS_PATH + comment_id + '.txt'
+        content = COMMENTS_PATH + comment_id + '.md'
         s3.put_object(Key=content, Body=content_body, ACL='public-read')
 
         # insert the article info into the database

@@ -7,6 +7,7 @@ from pymysql import escape_string
 import boto3
 from boto3.dynamodb.conditions import Key
 
+import urllib.request
 import gc
 import os, shutil
 import operator
@@ -114,6 +115,7 @@ def article_list_tag(tag):
     except Exception as e:
         return str(e)  # page for showing full articles
 
+
 @webapp.route("/article/<article_id>")
 def full_article(article_id):
     try:
@@ -175,10 +177,11 @@ def full_article(article_id):
                 raise ValueError('Cannot find the author.')
 
             author_name = r['Items'][0]['Nickname']
-
+            txt = urllib.request.urlopen(s3_url + item['Content']).read().decode('utf-8').rstrip()
+            print(txt)
             chapter = classes.chapter(
                 chapter_id=item['ChapterID'],
-                content=s3_url + item['Content'],
+                content=txt,
                 article_id=item['ArticleID'],
                 author_id=item['AuthorID'],
                 author_name=author_name,

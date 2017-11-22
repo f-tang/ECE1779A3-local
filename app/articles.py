@@ -11,14 +11,13 @@ import gc
 import os, shutil
 import operator
 
-
 # get the absolute path of the file
 APP_ROOT = os.path.dirname(os.path.abspath(__file__)) + "/static"
 
 BUCKET_NAME = 'ece1779-ft'
 
 
-# page for the thumbnail gallery
+# page for the article list
 @webapp.route("/list-all")
 def article_list():
     error = ""
@@ -44,29 +43,77 @@ def article_list():
             starter_name = r['Items'][0]['Nickname']
 
             article = classes.article(
-                article_id = item['ArticleID'],
-                title = item['Title'],
-                cover_pic= escape_string(cover_url + item['Tag']),
-                tag = item['Tag'],
-                starter_id = item['StarterID'],
-                starter_name= starter_name,
-                create_time = item['CreateTime'],
-                modify_time = item['ModifyTime'],
-                thumb_num = item['ThumbNum']
+                article_id=item['ArticleID'],
+                title=item['Title'],
+                cover_pic=escape_string(cover_url + item['Tag']),
+                tag=item['Tag'],
+                starter_id=item['StarterID'],
+                starter_name=starter_name,
+                create_time=item['CreateTime'],
+                modify_time=item['ModifyTime'],
+                thumb_num=item['ThumbNum']
             )
             articles.append(article)
 
         articles.sort(key=operator.attrgetter('modify_time'), reverse=True)
-        #cleanup
+        # cleanup
         gc.collect()
 
-        return render_template("article-list.html", title="Gallery", articles=articles)
+        return render_template("article-list.html", title="Gallery", articles=articles, tag='all')
 
     except Exception as e:
         return str(e)
 
 
-# page for showing full articles
+@webapp.route("/list-<tag>")
+def article_list_tag(tag):
+    error = ""
+    try:
+        # access database
+        dynamodb = get_dbresource()
+        articletable = dynamodb.Table('articles')
+        usertable = dynamodb.Table('users')
+
+        cover_url = "https://s3.amazonaws.com/ece1779-ft/cover_pics/"
+
+        # fetch all articles
+        articles = []
+        response = articletable.query(
+            IndexName='TagIndex',
+            KeyConditionExpression=Key('Tag').eq(tag)
+        )
+        for item in response['Items']:
+            r = usertable.query(
+                IndexName='UIDIndex',
+                KeyConditionExpression=Key('UserID').eq(item['StarterID'])
+            )
+            if r['Count'] == 0:
+                raise ValueError('Cannot find the author.')
+
+            starter_name = r['Items'][0]['Nickname']
+
+            article = classes.article(
+                article_id=item['ArticleID'],
+                title=item['Title'],
+                cover_pic=escape_string(cover_url + item['Tag']),
+                tag=item['Tag'],
+                starter_id=item['StarterID'],
+                starter_name=starter_name,
+                create_time=item['CreateTime'],
+                modify_time=item['ModifyTime'],
+                thumb_num=item['ThumbNum']
+            )
+            articles.append(article)
+
+        articles.sort(key=operator.attrgetter('modify_time'), reverse=True)
+        # cleanup
+        gc.collect()
+
+        return render_template("article-list.html", title="Gallery", articles=articles, tag=tag)
+
+    except Exception as e:
+        return str(e)  # page for showing full articles
+
 @webapp.route("/article/<article_id>")
 def full_article(article_id):
     try:
@@ -130,13 +177,13 @@ def full_article(article_id):
             author_name = r['Items'][0]['Nickname']
 
             chapter = classes.chapter(
-                chapter_id = item['ChapterID'],
-                content = s3_url + item['Content'],
-                article_id = item['ArticleID'],
-                author_id = item['AuthorID'],
-                author_name= author_name,
-                create_time = item['CreateTime'],
-                thumb_num = item['ThumbNum']
+                chapter_id=item['ChapterID'],
+                content=s3_url + item['Content'],
+                article_id=item['ArticleID'],
+                author_id=item['AuthorID'],
+                author_name=author_name,
+                create_time=item['CreateTime'],
+                thumb_num=item['ThumbNum']
             )
 
             r_comment = comment_table.query(
@@ -157,12 +204,12 @@ def full_article(article_id):
                         commenter_name = 'Anonymous'
 
                     comment = classes.comment(
-                        comment_id = i['CommentID'],
-                        chapter_id = i['ChapterID'],
-                        content = s3_url + i['Content'],
-                        commenter_id = i['CommenterID'],
-                        commenter_name = commenter_name,
-                        create_time = i['CreateTime'],
+                        comment_id=i['CommentID'],
+                        chapter_id=i['ChapterID'],
+                        content=s3_url + i['Content'],
+                        commenter_id=i['CommenterID'],
+                        commenter_name=commenter_name,
+                        create_time=i['CreateTime'],
                     )
                     chapter.comment.append(comment)
                 chapter.comment.sort(key=operator.attrgetter('create_time'), reverse=False)
